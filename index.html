@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <section class="image-generator">
+        <div class="container">
+            <h1>AI Image Generator</h1>
+            <p>Convert your text into an image within seconds using this AI Tool.</p>
+            <form action="#" class="generate-form">
+                <input type="text" class="input-text" placeholder="Describe your Image" required>
+                <div class="controls">
+                    <button class="generate-btn" type="button">Generate</button>
+                </div>
+            </form>
+        </div>
+    </section>
+    
+    <!-- Add a loading spinner or message that appears when generating images -->
+    <div class="loading-container" style="display: none;">
+        <span>Loading...</span>
+    </div>
+
+    <section class="image-gallery">
+      <!-- Gallery images will be appended here -->
+    </section>
+    
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const generateBtn = document.querySelector('.generate-btn');
+        const loadingContainer = document.querySelector('.loading-container');
+        const imageGallery = document.querySelector('.image-gallery');
+        const inputText = document.querySelector('.input-text');
+        const imgQuantity = document.querySelector('.img-quantity');
+    
+        // Prevent form from submitting and reloading the page on button click
+        generateBtn.addEventListener('click', async (e) => {
+            e.preventDefault();  // Prevent default form submission and page reload
+    
+            const prompt = inputText.value.trim();
+            const quantity = 2; // Default quantity is 2
+    
+            if (!prompt || quantity < 1 || quantity > 5) {
+                alert('Please provide a valid prompt and a quantity between 1 and 5.');
+                return;
+            }
+    
+            loadingContainer.style.display = 'block';
+    
+            try {
+                const response = await fetch("http://localhost:5000/generate", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        quantity: quantity,
+                    }),
+                });
+    
+                const data = await response.json();
+    
+                loadingContainer.style.display = 'none';
+    
+                if (response.ok) {
+                    if (data.images && data.images.length > 0) {
+                        imageGallery.innerHTML = ''; // Clear previous images before appending new ones
+    
+                        data.images.forEach((imageUrl) => {
+                            if (imageUrl) {
+                                const imgElement = document.createElement('img');
+                                imgElement.src = imageUrl;
+                                imgElement.classList.add('generated-image');
+    
+                                const imageWrapper = document.createElement('div');
+                                imageWrapper.classList.add('image-wrapper');
+                                imageWrapper.appendChild(imgElement);
+    
+                                // Create the download icon
+                                const downloadIcon = document.createElement('div');
+                                downloadIcon.classList.add('download-icon');
+                                downloadIcon.addEventListener('click', (event) => {
+                                    event.stopPropagation();  // Prevent the image from being selected
+                                    downloadImage(event, imageUrl);  // Trigger download
+                                });
+    
+                                imageWrapper.appendChild(downloadIcon);
+                                imageGallery.appendChild(imageWrapper);
+                            } else {
+                                console.error('Received invalid image URL.');
+                            }
+                        });
+                    } else {
+                        console.error('No images received or images are invalid.');
+                    }
+                } else {
+                    console.error(`Failed to fetch images: ${data.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loadingContainer.style.display = 'none';
+            }
+        });
+    
+        // Function to handle the image download
+        function downloadImage(event, imageUrl) {
+            event.preventDefault(); // Prevent any other default behavior that might trigger a page reload
+            const a = document.createElement('a');
+            a.href = imageUrl;
+    
+            // Check if the URL has an extension to properly handle download
+            const extension = imageUrl.split('.').pop();
+            const fileName = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
+    
+            // Set the download attribute with a valid filename
+            a.download = fileName;
+    
+            // Append the link to the document body temporarily
+            document.body.appendChild(a);
+    
+            // Trigger the download
+            a.click();
+    
+            // Clean up and remove the link after the download
+            document.body.removeChild(a);
+        }
+    });            
+    </script>    
+</body>
+</html>
